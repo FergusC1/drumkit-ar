@@ -1,0 +1,21 @@
+# Unity
+app/Library/
+app/Temp/
+app/Logs/
+app/UserSettings/
+app/obj/
+app/Build/
+app/.DS_Store
+*.csproj
+*.sln
+
+# Python
+backend/__pycache__/
+backend/.venv/
+backend/*.pyc
+backend/.env
+backend/alembic/versions/*.pyc
+
+# General
+.DS_Store
+*.log
