@@ -1,11 +1,12 @@
 # Unity
-app/Library/
-app/Temp/
-app/Logs/
-app/UserSettings/
-app/obj/
-app/Build/
-app/.DS_Store
+app/DrumKitAR/Library/
+app/DrumKitAR/Temp/
+app/DrumKitAR/Logs/
+app/DrumKitAR/UserSettings/
+app/DrumKitAR/obj/
+app/DrumKitAR/Build/
+app/DrumKitAR/.DS_Store
+app/Builds/
 *.csproj
 *.sln
 
