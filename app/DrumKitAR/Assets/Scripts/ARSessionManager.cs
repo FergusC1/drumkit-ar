@@ -29,13 +29,25 @@ public class ARSessionManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    private void Start()
-    {
-        StartCoroutine(CheckARAvailability());
+ private void Start()
+{
+    StartCoroutine(CheckARAvailability());
 
-        if (cameraManager != null)
-            cameraManager.frameReceived += OnCameraFrameReceived;
+    if (cameraManager != null)
+        cameraManager.frameReceived += OnCameraFrameReceived;
+
+    RequestCameraPermission();
+}
+
+private void RequestCameraPermission()
+{
+    if (!UnityEngine.Android.Permission.HasUserAuthorizedPermission(
+        UnityEngine.Android.Permission.Camera))
+    {
+        UnityEngine.Android.Permission.RequestUserPermission(
+            UnityEngine.Android.Permission.Camera);
     }
+}
 
     private void OnDestroy()
     {
@@ -76,21 +88,37 @@ public class ARSessionManager : MonoBehaviour
             CurrentLighting = LightingCondition.Poor;
     }
 
-    public void EnableTorch(bool enable)
+    private bool torchEnabled = false;
+
+public void EnableTorch(bool enable)
+{
+    torchEnabled = enable;
+    if (cameraManager != null)
     {
-        StartCoroutine(SetTorch(enable));
+        cameraManager.requestedLightEstimation = enable 
+            ? UnityEngine.XR.ARSubsystems.CameraLightEstimation.AmbientIntensity 
+            : UnityEngine.XR.ARSubsystems.CameraLightEstimation.None;
     }
 
-    private IEnumerator SetTorch(bool enable)
+    using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+    using (AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
     {
-        yield return new WaitForEndOfFrame();
-        using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-        using (AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
-        using (AndroidJavaObject cameraManagerAndroid = activity.Call<AndroidJavaObject>("getSystemService", "camera"))
+        activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
         {
-            string[] cameraIds = cameraManagerAndroid.Call<string[]>("getCameraIdList");
-            if (cameraIds.Length > 0)
-                cameraManagerAndroid.Call("setTorchMode", cameraIds[0], enable);
-        }
+            using (AndroidJavaObject cameraManagerAndroid = 
+                activity.Call<AndroidJavaObject>("getSystemService", "camera"))
+            {
+                try
+                {
+                    string[] cameraIds = cameraManagerAndroid.Call<string[]>("getCameraIdList");
+                    cameraManagerAndroid.Call("setTorchMode", cameraIds[0], enable);
+                }
+                catch (AndroidJavaException e)
+                {
+                    Debug.LogWarning($"Torch not available: {e.Message}");
+                }
+            }
+        }));
     }
+}
 }
