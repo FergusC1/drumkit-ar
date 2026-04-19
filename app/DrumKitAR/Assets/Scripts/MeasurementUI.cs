@@ -104,7 +104,49 @@ private void Update()
         GUI.color = lightingColor;
         GUI.Box(new Rect(padding, padding, boxWidth, 40), lightingText);
         GUI.color = Color.white;
+        // Calibration status
+        string calibrationText = "";
+        Color calibrationColor = Color.white;
 
+        if (CalibrationManager.Instance != null)
+        {
+            switch (CalibrationManager.Instance.State)
+            {
+                case CalibrationManager.CalibrationState.Idle:
+                    calibrationText = "Not calibrated";
+                    calibrationColor = Color.yellow;
+                    break;
+                case CalibrationManager.CalibrationState.WaitingForFirstAnchor:
+                    calibrationText = "Place marker on first corner of A4 sheet";
+                    calibrationColor = Color.cyan;
+                    break;
+                case CalibrationManager.CalibrationState.WaitingForSecondAnchor:
+                    calibrationText = "Place marker on opposite corner of A4 sheet";
+                    calibrationColor = Color.cyan;
+                    break;
+                case CalibrationManager.CalibrationState.Complete:
+                    calibrationText = $"Calibrated - confidence: {CalibrationManager.Instance.ConfidenceScore:P0} " +
+                                    $"(error: {CalibrationManager.Instance.ErrorPercent:F1}%)";
+                    calibrationColor = Color.green;
+                    break;
+                case CalibrationManager.CalibrationState.Failed:
+                    calibrationText = $"Calibration failed - error too high " +
+                                    $"({CalibrationManager.Instance.ErrorPercent:F1}%). Try again";
+                    calibrationColor = Color.red;
+                    break;
+            }
+        }
+
+        GUI.color = calibrationColor;
+        GUI.Box(new Rect(padding, padding + 50, boxWidth, 40), calibrationText);
+        GUI.color = Color.white;
+
+        // Calibrate button
+        if (GUI.Button(new Rect(Screen.width - 120 - padding, padding + 70, 120, 60), "Calibrate"))
+        {
+            CalibrationManager.Instance?.StartCalibration();
+            anchorPlacer?.ClearAllAnchors();
+        }
         // Measurement readout - bottom of screen
         GUI.Box(new Rect(padding, Screen.height - boxHeight - padding, boxWidth, boxHeight), measurementText);
 

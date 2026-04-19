@@ -77,7 +77,13 @@ private void PlaceAnchorAtTouch(Vector2 touchPosition)
     }
 
     Debug.Log($"Anchor placed at {hitPose.position}. Total anchors: {placedAnchors.Count}");
-
+    // Feed anchor to calibration manager if calibration is active
+if (CalibrationManager.Instance != null &&
+    CalibrationManager.Instance.State != CalibrationManager.CalibrationState.Idle &&
+    CalibrationManager.Instance.State != CalibrationManager.CalibrationState.Complete)
+    {
+        CalibrationManager.Instance.RegisterAnchorForCalibration(hitPose.position);
+    }
     if (placedAnchors.Count >= 2)
         CalculateDistances();
 }
