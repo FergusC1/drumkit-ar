@@ -7,7 +7,7 @@ public class CalibrationManager : MonoBehaviour
     [Header("Calibration Settings")]
     [SerializeField] private float knownWidthCm = 29.7f;
     [SerializeField] private float knownHeightCm = 21.0f;
-    [SerializeField] private float acceptableErrorPercent = 10f;
+    [SerializeField] private float acceptableErrorPercent = 25f;
 
     public enum CalibrationState
     {
@@ -66,30 +66,37 @@ public class CalibrationManager : MonoBehaviour
     }
 
     private void CalculateCalibration()
-    {
-        float measuredMetres = Vector3.Distance(firstAnchorPosition, secondAnchorPosition);
+{
+         float measuredMetres = Vector3.Distance(firstAnchorPosition, secondAnchorPosition);
         MeasuredDistanceCm = measuredMetres * 100f;
 
-        // Compare against A4 diagonal (35.9cm) or width (29.7cm) depending on placement
+        Debug.Log($"First anchor: {firstAnchorPosition}");
+        Debug.Log($"Second anchor: {secondAnchorPosition}");
+        Debug.Log($"Raw distance metres: {measuredMetres}");
+        Debug.Log($"Measured cm: {MeasuredDistanceCm}");
+
         float knownDistanceCm = knownWidthCm;
         ErrorPercent = Mathf.Abs(MeasuredDistanceCm - knownDistanceCm) / knownDistanceCm * 100f;
 
-        if (ErrorPercent <= acceptableErrorPercent)
+        ConfidenceScore = Mathf.Clamp01(1f - (ErrorPercent / 100f));
+
+        if (ErrorPercent <= 10f)
         {
-            ConfidenceScore = 1f - (ErrorPercent / acceptableErrorPercent);
             State = CalibrationState.Complete;
             IsCalibrated = true;
-            Debug.Log($"Calibration complete - measured: {MeasuredDistanceCm:F1}cm, " +
-                      $"expected: {knownDistanceCm}cm, " +
-                      $"error: {ErrorPercent:F1}%, " +
-                      $"confidence: {ConfidenceScore:F2}");
+            Debug.Log($"High confidence calibration - error: {ErrorPercent:F1}%");
+        }
+        else if (ErrorPercent <= 25f)
+        {
+            State = CalibrationState.Complete;
+            IsCalibrated = true;
+            Debug.Log($"Medium confidence calibration - error: {ErrorPercent:F1}%");
         }
         else
         {
-            ConfidenceScore = 0f;
             State = CalibrationState.Failed;
             IsCalibrated = false;
-            Debug.LogWarning($"Calibration failed - error too high: {ErrorPercent:F1}%");
+            Debug.LogWarning($"Low confidence - error: {ErrorPercent:F1}%");
         }
     }
 

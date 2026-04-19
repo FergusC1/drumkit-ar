@@ -229,6 +229,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arSession: {fileID: 0}
   cameraManager: {fileID: 1682294694}
+  requiredScanSeconds: 60
   goodLightThreshold: 0.5
   poorLightThreshold: 0.2
 --- !u!1 &1338217211

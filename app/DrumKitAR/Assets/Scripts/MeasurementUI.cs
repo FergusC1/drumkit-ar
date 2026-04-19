@@ -86,83 +86,125 @@ private void Update()
         }
     }
 
-    private void OnGUI()
-    {
-        int padding = 20;
-        int boxWidth = 350;
-        int boxHeight = 120;
+ private void OnGUI()
+{
+    int padding = 20;
+    int boxWidth = 350;
 
-        // Lighting indicator - top of screen
-        Color lightingColor = sessionManager?.CurrentLighting switch
+    // Lighting indicator - top left
+    Color lightingColor = Color.white;
+    if (sessionManager != null)
+    {
+        lightingColor = sessionManager.CurrentLighting switch
         {
             ARSessionManager.LightingCondition.Good => Color.green,
             ARSessionManager.LightingCondition.Marginal => Color.yellow,
             ARSessionManager.LightingCondition.Poor => Color.red,
             _ => Color.white
         };
+    }
+    GUI.color = lightingColor;
+    GUI.Box(new Rect(padding, padding, boxWidth, 40), lightingText);
+    GUI.color = Color.white;
 
-        GUI.color = lightingColor;
-        GUI.Box(new Rect(padding, padding, boxWidth, 40), lightingText);
-        GUI.color = Color.white;
-        // Calibration status
-        string calibrationText = "";
-        Color calibrationColor = Color.white;
-
-        if (CalibrationManager.Instance != null)
+    // Calibration status - below lighting
+    Color calibrationColor = Color.white;
+    string calibrationText = "";
+    if (CalibrationManager.Instance != null)
+    {
+        switch (CalibrationManager.Instance.State)
         {
-            switch (CalibrationManager.Instance.State)
-            {
-                case CalibrationManager.CalibrationState.Idle:
-                    calibrationText = "Not calibrated";
-                    calibrationColor = Color.yellow;
-                    break;
-                case CalibrationManager.CalibrationState.WaitingForFirstAnchor:
-                    calibrationText = "Place marker on first corner of A4 sheet";
-                    calibrationColor = Color.cyan;
-                    break;
-                case CalibrationManager.CalibrationState.WaitingForSecondAnchor:
-                    calibrationText = "Place marker on opposite corner of A4 sheet";
-                    calibrationColor = Color.cyan;
-                    break;
-                case CalibrationManager.CalibrationState.Complete:
-                    calibrationText = $"Calibrated - confidence: {CalibrationManager.Instance.ConfidenceScore:P0} " +
-                                    $"(error: {CalibrationManager.Instance.ErrorPercent:F1}%)";
-                    calibrationColor = Color.green;
-                    break;
-                case CalibrationManager.CalibrationState.Failed:
-                    calibrationText = $"Calibration failed - error too high " +
-                                    $"({CalibrationManager.Instance.ErrorPercent:F1}%). Try again";
-                    calibrationColor = Color.red;
-                    break;
-            }
+            case CalibrationManager.CalibrationState.Idle:
+                calibrationText = "Not calibrated - press Calibrate when ready";
+                calibrationColor = Color.yellow;
+                break;
+            case CalibrationManager.CalibrationState.WaitingForFirstAnchor:
+                calibrationText = "Tap first corner of A4 sheet";
+                calibrationColor = Color.cyan;
+                break;
+            case CalibrationManager.CalibrationState.WaitingForSecondAnchor:
+                calibrationText = "Tap opposite corner of A4 sheet";
+                calibrationColor = Color.cyan;
+                break;
+            case CalibrationManager.CalibrationState.Complete:
+            string confidenceLevel = CalibrationManager.Instance.ErrorPercent <= 10f 
+                ? "High" 
+                : "Medium";
+            calibrationText = $"{confidenceLevel} confidence - " +
+                            $"error: {CalibrationManager.Instance.ErrorPercent:F1}% " +
+                            $"({CalibrationManager.Instance.ConfidenceScore:P0})";
+            calibrationColor = CalibrationManager.Instance.ErrorPercent <= 10f 
+                ? Color.green 
+                : Color.yellow;
+            break;
+            case CalibrationManager.CalibrationState.Failed:
+                calibrationText = $"Calibration failed ({CalibrationManager.Instance.ErrorPercent:F1}% error) - try again";
+                calibrationColor = Color.red;
+                break;
         }
+    }
+    GUI.color = calibrationColor;
+    GUI.Box(new Rect(padding, padding + 50, boxWidth, 40), calibrationText);
+    GUI.color = Color.white;
 
-        GUI.color = calibrationColor;
-        GUI.Box(new Rect(padding, padding + 50, boxWidth, 40), calibrationText);
-        GUI.color = Color.white;
+    // Measurement readout - bottom left
+    GUI.Box(new Rect(padding, Screen.height - 140 - padding, boxWidth, 140), measurementText);
 
-        // Calibrate button
-        if (GUI.Button(new Rect(Screen.width - 120 - padding, padding + 70, 120, 60), "Calibrate"))
+    // Right side buttons and scan progress
+    int btnX = Screen.width - 140 - padding;
+    int btnWidth = 140;
+
+    // Torch button
+    if (GUI.Button(new Rect(btnX, padding, btnWidth, 50), "Torch"))
+    {
+        bool torchOn = PlayerPrefs.GetInt("torch", 0) == 0;
+        PlayerPrefs.SetInt("torch", torchOn ? 1 : 0);
+        sessionManager?.EnableTorch(torchOn);
+    }
+
+    // Scan progress
+    float progress = ARSessionManager.Instance?.ScanProgress ?? 0f;
+    bool readyToCalibrate = ARSessionManager.Instance?.IsReadyToCalibrate ?? false;
+
+    string scanLabel = readyToCalibrate ? "Ready to calibrate!" : $"Scanning: {progress:P0}";
+    GUI.color = readyToCalibrate ? Color.green : Color.yellow;
+    GUI.Box(new Rect(btnX, padding + 60, btnWidth, 30), scanLabel);
+
+    // Progress bar background
+    GUI.color = Color.grey;
+    GUI.Box(new Rect(btnX, padding + 95, btnWidth, 20), "");
+
+    // Progress bar fill
+    GUI.color = readyToCalibrate ? Color.green : Color.yellow;
+    if (progress > 0)
+        GUI.Box(new Rect(btnX, padding + 95, btnWidth * progress, 20), "");
+    GUI.color = Color.white;
+
+        // Calibrate button - greyed out until scan complete and not mid-calibration
+    bool calibrateButtonEnabled = readyToCalibrate && 
+        (CalibrationManager.Instance?.State == CalibrationManager.CalibrationState.Idle ||
+        CalibrationManager.Instance?.State == CalibrationManager.CalibrationState.Failed ||
+        CalibrationManager.Instance?.State == CalibrationManager.CalibrationState.Complete);
+
+    if (calibrateButtonEnabled)
+    {
+        if (GUI.Button(new Rect(btnX, padding + 125, btnWidth, 50), "Calibrate"))
         {
             CalibrationManager.Instance?.StartCalibration();
             anchorPlacer?.ClearAllAnchors();
         }
-        // Measurement readout - bottom of screen
-        GUI.Box(new Rect(padding, Screen.height - boxHeight - padding, boxWidth, boxHeight), measurementText);
-
-        // Torch toggle button
-        if (GUI.Button(new Rect(Screen.width - 120 - padding, padding, 120, 60), "Torch"))
-        {
-            bool torchOn = !PlayerPrefs.HasKey("torch") || PlayerPrefs.GetInt("torch") == 0;
-            PlayerPrefs.SetInt("torch", torchOn ? 1 : 0);
-            sessionManager?.EnableTorch(torchOn);
-        }
-
-        // Clear button
-        if (GUI.Button(new Rect(Screen.width - 120 - padding, Screen.height - 80 - padding, 120, 60), "Clear"))
-        {
-            anchorPlacer?.ClearAllAnchors();
-            measurementText = "";
-        }
     }
+    else
+    {
+        GUI.color = Color.grey;
+        GUI.Box(new Rect(btnX, padding + 125, btnWidth, 50), "Calibrate");
+        GUI.color = Color.white;
+    }
+
+    // Clear button
+    if (GUI.Button(new Rect(btnX, padding + 185, btnWidth, 50), "Clear"))
+    {
+        anchorPlacer?.ClearAllAnchors();
+    }
+}
 }

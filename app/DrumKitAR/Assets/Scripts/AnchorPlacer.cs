@@ -61,6 +61,8 @@ private void PlaceAnchorAtTouch(Vector2 touchPosition)
         return;
     }
 
+    // Sort hits by distance and use closest
+    hits.Sort((a, b) => a.distance.CompareTo(b.distance));
     Pose hitPose = hits[0].pose;
 
     GameObject anchorObj = new GameObject("Anchor");

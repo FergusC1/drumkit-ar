@@ -8,6 +8,13 @@ public class ARSessionManager : MonoBehaviour
     [SerializeField] private ARSession arSession;
     [SerializeField] private ARCameraManager cameraManager;
 
+    [Header("Scan Timer")]
+    [SerializeField] private float requiredScanSeconds = 30f;
+
+    public float ScanProgress { get; private set; } = 0f;
+    public bool IsReadyToCalibrate { get; private set; } = false;
+    private float scanTimer = 0f;
+
     [Header("Lighting Thresholds")]
     [SerializeField] private float goodLightThreshold = 0.5f;
     [SerializeField] private float poorLightThreshold = 0.2f;
@@ -83,6 +90,28 @@ private void RequestCameraPermission()
             Debug.Log("ARCore is supported and ready");
     }
 
+        private void Update()
+        {
+            UpdateLightingCondition();
+            UpdateScanTimer();
+        }
+
+        private void UpdateScanTimer()
+        {
+            if (IsReadyToCalibrate) return;
+
+            if (ARSession.state == ARSessionState.SessionTracking)
+            {
+                scanTimer += Time.deltaTime;
+                ScanProgress = Mathf.Clamp01(scanTimer / requiredScanSeconds);
+
+                if (scanTimer >= requiredScanSeconds)
+                {
+                    IsReadyToCalibrate = true;
+                    Debug.Log("Environment scanned - ready to calibrate");
+                }
+            }
+        }
     private void UpdateLightingCondition()
     {
         if (CurrentLightIntensity >= goodLightThreshold)
