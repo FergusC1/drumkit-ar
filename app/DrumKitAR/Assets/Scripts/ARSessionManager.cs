@@ -55,14 +55,19 @@ private void RequestCameraPermission()
             cameraManager.frameReceived -= OnCameraFrameReceived;
     }
 
-    private void OnCameraFrameReceived(ARCameraFrameEventArgs args)
+   private void OnCameraFrameReceived(ARCameraFrameEventArgs args)
+{
+    if (args.lightEstimation.averageBrightness.HasValue)
     {
-        if (args.lightEstimation.averageBrightness.HasValue)
-        {
-            CurrentLightIntensity = args.lightEstimation.averageBrightness.Value;
-            UpdateLightingCondition();
-        }
+        CurrentLightIntensity = args.lightEstimation.averageBrightness.Value;
+        Debug.Log($"Light intensity: {CurrentLightIntensity}");
+        UpdateLightingCondition();
     }
+    else
+    {
+        Debug.Log("No brightness value available this frame");
+    }
+}
 
     private IEnumerator CheckARAvailability()
     {
@@ -93,32 +98,31 @@ private void RequestCameraPermission()
 public void EnableTorch(bool enable)
 {
     torchEnabled = enable;
-    if (cameraManager != null)
+    try
     {
-        cameraManager.requestedLightEstimation = enable 
-            ? UnityEngine.XR.ARSubsystems.CameraLightEstimation.AmbientIntensity 
-            : UnityEngine.XR.ARSubsystems.CameraLightEstimation.None;
-    }
-
-    using (AndroidJavaClass unityPlayer = new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
-    using (AndroidJavaObject activity = unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
-    {
-        activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
+        using (AndroidJavaClass unityPlayer = 
+            new AndroidJavaClass("com.unity3d.player.UnityPlayer"))
+        using (AndroidJavaObject activity = 
+            unityPlayer.GetStatic<AndroidJavaObject>("currentActivity"))
+        using (AndroidJavaObject window = activity.Call<AndroidJavaObject>("getWindow"))
+        using (AndroidJavaObject layoutParams = 
+            window.Call<AndroidJavaObject>("getAttributes"))
         {
-            using (AndroidJavaObject cameraManagerAndroid = 
-                activity.Call<AndroidJavaObject>("getSystemService", "camera"))
+            if (enable)
+                layoutParams.Set("screenBrightness", 1.0f);
+            else
+                layoutParams.Set("screenBrightness", -1.0f);
+
+            activity.Call("runOnUiThread", new AndroidJavaRunnable(() =>
             {
-                try
-                {
-                    string[] cameraIds = cameraManagerAndroid.Call<string[]>("getCameraIdList");
-                    cameraManagerAndroid.Call("setTorchMode", cameraIds[0], enable);
-                }
-                catch (AndroidJavaException e)
-                {
-                    Debug.LogWarning($"Torch not available: {e.Message}");
-                }
-            }
-        }));
+                window.Call("setAttributes", layoutParams);
+            }));
+        }
+        Debug.Log($"Screen brightness torch: {enable}");
+    }
+    catch (AndroidJavaException e)
+    {
+        Debug.LogWarning($"Torch failed: {e.Message}");
     }
 }
 }
