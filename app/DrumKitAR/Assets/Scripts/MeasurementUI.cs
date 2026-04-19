@@ -11,11 +11,15 @@ public class MeasurementUI : MonoBehaviour
     private ARSessionManager sessionManager;
     private string measurementText = "";
     private string lightingText = "";
+    private ElementTagger elementTagger;
+    private Vector2 elementScrollPos;
+    private bool showElementPanel = false;
 
    private void Start()
 {
     anchorPlacer = AnchorPlacer.Instance;
     sessionManager = ARSessionManager.Instance;
+    elementTagger = ElementTagger.Instance ?? FindObjectOfType<ElementTagger>();
     
     if (sessionManager == null)
         Debug.LogError("ARSessionManager instance not found");
@@ -27,7 +31,8 @@ private void Update()
 {
     sessionManager = sessionManager ?? ARSessionManager.Instance;
     anchorPlacer = anchorPlacer ?? AnchorPlacer.Instance;
-    
+    elementTagger = elementTagger ?? FindObjectOfType<ElementTagger>();
+
     UpdateLightingText();
     UpdateMeasurementText();
 }
@@ -205,6 +210,57 @@ private void Update()
     if (GUI.Button(new Rect(btnX, padding + 185, btnWidth, 50), "Clear"))
     {
         anchorPlacer?.ClearAllAnchors();
+        elementTagger?.ClearAll();
+    }
+    // Element selector toggle button
+    if (GUI.Button(new Rect(btnX, padding + 245, btnWidth, 50), 
+        showElementPanel ? "Hide Elements" : "Tag Element"))
+    {
+        showElementPanel = !showElementPanel;
+    }
+
+    // Element selector panel
+    if (showElementPanel && elementTagger != null)
+    {
+        int panelX = padding;
+        int panelY = Screen.height / 2 - 200;
+        int panelWidth = 300;
+        int panelHeight = 400;
+
+        GUI.Box(new Rect(panelX, panelY, panelWidth, panelHeight), "Select Element Type");
+
+        int btnY = panelY + 30;
+        foreach (ElementTagger.DrumElement element in 
+            System.Enum.GetValues(typeof(ElementTagger.DrumElement)))
+        {
+            if (GUI.Button(new Rect(panelX + 10, btnY, panelWidth - 20, 35), 
+                elementTagger.GetElementIcon(element) + " " + element.ToString()))
+            {
+                elementTagger.SetSelectedElement(element);
+                elementTagger.TagLastAnchor();
+                showElementPanel = false;
+            }
+            btnY += 38;
+        }
+    }
+
+    // Tagged elements list - bottom right
+    if (elementTagger != null)
+    {
+        var elements = elementTagger.GetTaggedElements();
+        if (elements.Count > 0)
+        {
+            int listX = Screen.width - 200 - padding;
+            int listY = Screen.height - (elements.Count * 25) - 80 - padding;
+            GUI.Box(new Rect(listX, listY, 200, elements.Count * 25 + 30), "Kit elements:");
+            for (int i = 0; i < elements.Count; i++)
+            {
+                GUI.Label(new Rect(listX + 10, listY + 30 + (i * 25), 180, 25),
+                    $"{elementTagger.GetElementIcon(elements[i].elementType)} " +
+                    $"{elements[i].label} " +
+                    $"({elements[i].position.x * 100:F0}, {elements[i].position.z * 100:F0})cm");
+            }
+        }
     }
 }
 }
