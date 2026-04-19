@@ -249,6 +249,7 @@ GameObject:
   - component: {fileID: 1338217218}
   - component: {fileID: 1338217219}
   - component: {fileID: 1338217220}
+  - component: {fileID: 1338217221}
   m_Layer: 0
   m_Name: XR Origin
   m_TagString: Untagged
@@ -384,6 +385,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 65f480fd1aaafb64da019408a6f6e60a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1338217221
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1338217211}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0e7f911d9b3a044ca72e544c15806a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  baseUrl: http://192.168.55.218:8000
 --- !u!1 &1682294690
 GameObject:
   m_ObjectHideFlags: 0

@@ -262,5 +262,32 @@ private void Update()
             }
         }
     }
+    // Save button
+    if (GUI.Button(new Rect(btnX, padding + 305, btnWidth, 50), "Save Kit"))
+    {
+        var elements = elementTagger?.GetTaggedElements();
+        if (elements != null && elements.Count > 0)
+        {
+            // Using test user ID - will be replaced with auth later
+            string testUserId = "637b9d67-f1e0-4362-b912-709c619db13e";
+            APIClient.Instance?.SaveKit(
+                "My Kit",
+                "Captured on " + System.DateTime.Now.ToString("dd/MM/yyyy"),
+                testUserId,
+                elements,
+                (success, profileId) =>
+                {
+                    if (success)
+                        Debug.Log($"Kit saved successfully - ID: {profileId}");
+                    else
+                        Debug.LogError($"Failed to save kit: {profileId}");
+                }
+            );
+        }
+        else
+        {
+            Debug.LogWarning("No elements tagged - nothing to save");
+        }
+    }
 }
 }

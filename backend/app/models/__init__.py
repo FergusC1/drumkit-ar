@@ -36,3 +36,31 @@ class KitProfile(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     owner = relationship("User", back_populates="profiles")
+    elements = relationship("KitElement", back_populates="profile")
+
+class ElementType(enum.Enum):
+    kick_drum = "kick_drum"
+    snare_drum = "snare_drum"
+    hi_hat = "hi_hat"
+    ride_cymbal = "ride_cymbal"
+    crash_cymbal = "crash_cymbal"
+    floor_tom = "floor_tom"
+    rack_tom = "rack_tom"
+    splash = "splash"
+    china = "china"
+    drum_throne = "drum_throne"
+
+class KitElement(Base):
+    __tablename__ = "kit_elements"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    profile_id = Column(UUID(as_uuid=True), ForeignKey("kit_profiles.id"), nullable=False)
+    element_type = Column(Enum(ElementType), nullable=False)
+    label = Column(String, nullable=False)
+    pos_x_cm = Column(Float, nullable=False)
+    pos_y_cm = Column(Float, nullable=False)
+    pos_z_cm = Column(Float, nullable=False)
+    angle_deg = Column(Float, nullable=False)
+    height_cm = Column(Float, nullable=False)
+
+    profile = relationship("KitProfile", back_populates="elements")
