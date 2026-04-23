@@ -269,7 +269,7 @@ private void Update()
         if (elements != null && elements.Count > 0)
         {
             // Using test user ID - will be replaced with auth later
-            string testUserId = "637b9d67-f1e0-4362-b912-709c619db13e";
+            string testUserId = "9b2288bb-0b27-45f2-9113-a9ea7f4ef100";
             APIClient.Instance?.SaveKit(
                 "My Kit",
                 "Captured on " + System.DateTime.Now.ToString("dd/MM/yyyy"),

@@ -7,7 +7,7 @@ using System.Text;
 public class APIClient : MonoBehaviour
 {
     [Header("API Settings")]
-    [SerializeField] private string baseUrl = "http://192.168.55.218:8000";
+    [SerializeField] private string baseUrl = "https://drumkit-ar-production.up.railway.app";
 
     public static APIClient Instance { get; private set; }
 

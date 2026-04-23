@@ -229,7 +229,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   arSession: {fileID: 0}
   cameraManager: {fileID: 1682294694}
-  requiredScanSeconds: 60
+  requiredScanSeconds: 15
   goodLightThreshold: 0.5
   poorLightThreshold: 0.2
 --- !u!1 &1338217211
@@ -397,7 +397,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0e7f911d9b3a044ca72e544c15806a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  baseUrl: http://192.168.55.218:8000
+  baseUrl: https://drumkit-ar-production.up.railway.app
 --- !u!1 &1682294690
 GameObject:
   m_ObjectHideFlags: 0
