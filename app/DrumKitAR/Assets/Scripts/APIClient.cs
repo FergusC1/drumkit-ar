@@ -10,7 +10,8 @@ public class APIClient : MonoBehaviour
     [SerializeField] private string baseUrl = "https://drumkit-ar-production.up.railway.app";
 
     public static APIClient Instance { get; private set; }
-
+    
+    public string GetBaseUrl() => baseUrl;
     private void Awake()
     {
         if (Instance != null && Instance != this)

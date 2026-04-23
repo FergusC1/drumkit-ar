@@ -14,6 +14,9 @@ public class MeasurementUI : MonoBehaviour
     private ElementTagger elementTagger;
     private Vector2 elementScrollPos;
     private bool showElementPanel = false;
+    private GuidedSetupManager guidedSetupManager;
+    private string guidedProfileId = "";
+    private bool showProfileInput = false;
 
 private void Start()
 {
@@ -43,6 +46,7 @@ private void Update()
     sessionManager = sessionManager ?? ARSessionManager.Instance;
     anchorPlacer = anchorPlacer ?? AnchorPlacer.Instance;
     elementTagger = elementTagger ?? FindObjectOfType<ElementTagger>();
+    guidedSetupManager = guidedSetupManager ?? FindObjectOfType<GuidedSetupManager>();
 
     UpdateLightingText();
     UpdateMeasurementText();
@@ -312,6 +316,62 @@ private void Update()
         {
             Debug.LogWarning("No elements to show schematic for");
         }
+    }
+        // Guided setup button
+    if (GUI.Button(new Rect(btnX, padding + 425, btnWidth, 50), 
+        guidedSetupManager?.State == GuidedSetupManager.GuidedSetupState.Idle 
+            ? "Guided Setup" : "Stop Setup"))
+    {
+        if (guidedSetupManager?.State == GuidedSetupManager.GuidedSetupState.Idle)
+            showProfileInput = !showProfileInput;
+        else
+            guidedSetupManager?.StopGuidedSetup();
+    }
+
+    // Profile ID input panel
+    if (showProfileInput)
+    {
+        GUI.Box(new Rect(padding, Screen.height / 2 - 80, 400, 160), "Enter Profile ID");
+        guidedProfileId = GUI.TextField(
+            new Rect(padding + 10, Screen.height / 2 - 40, 380, 40), guidedProfileId);
+
+        if (GUI.Button(new Rect(padding + 10, Screen.height / 2 + 20, 180, 50), "Load Profile"))
+        {
+            if (!string.IsNullOrEmpty(guidedProfileId))
+            {
+                guidedSetupManager?.StartGuidedSetup(guidedProfileId);
+                showProfileInput = false;
+                anchorPlacer?.ClearAllAnchors();
+            }
+        }
+
+        if (GUI.Button(new Rect(padding + 210, Screen.height / 2 + 20, 180, 50), "Cancel"))
+        {
+            showProfileInput = false;
+        }
+    }
+
+    // Guided setup status
+    if (guidedSetupManager != null && 
+        guidedSetupManager.State != GuidedSetupManager.GuidedSetupState.Idle)
+    {
+        string statusText = guidedSetupManager.State switch
+        {
+            GuidedSetupManager.GuidedSetupState.LoadingProfile => "Loading profile...",
+            GuidedSetupManager.GuidedSetupState.PlacingOrigin => 
+                "Tap floor to place kit origin point",
+            GuidedSetupManager.GuidedSetupState.Active => 
+                $"Place drums on blue markers - " +
+                $"{guidedSetupManager.GetTargetMarkers().FindAll(m => m.isPlaced).Count}" +
+                $"/{guidedSetupManager.GetTargetMarkers().Count} placed",
+            GuidedSetupManager.GuidedSetupState.Complete => "Setup complete!",
+            _ => ""
+        };
+
+        GUI.color = guidedSetupManager.State == GuidedSetupManager.GuidedSetupState.Complete
+            ? Color.green : Color.cyan;
+        GUI.Box(new Rect(padding, padding + 100, 400, 40), statusText);
+        GUI.color = Color.white;
     }
 }
 }

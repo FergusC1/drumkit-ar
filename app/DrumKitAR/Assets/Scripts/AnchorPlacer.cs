@@ -120,6 +120,13 @@ public class AnchorPlacer : MonoBehaviour
         {
             CalibrationManager.Instance.RegisterAnchorForCalibration(hitPose.position);
         }
+        // Feed anchor to guided setup if active
+        if (GuidedSetupManager.Instance != null &&
+            GuidedSetupManager.Instance.State == GuidedSetupManager.GuidedSetupState.PlacingOrigin)
+        {
+            GuidedSetupManager.Instance.PlaceOrigin(hitPose.position);
+            return;
+        }
 
         if (placedAnchors.Count >= 2)
             CalculateDistances();
