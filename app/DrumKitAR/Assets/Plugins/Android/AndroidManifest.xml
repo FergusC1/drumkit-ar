@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    AndroidManifest.xml
+    Custom Android manifest for DrumKit AR.
+    Placed in Assets/Plugins/Android/ so Unity merges it with its
+    generated manifest at build time rather than replacing it entirely.
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     package="com.fergus.drumkitar">
 
+    <!-- Required for API calls to the Railway backend -->
     <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Required for ARCore camera access -->
     <uses-permission android:name="android.permission.CAMERA"/>
+
+    <!-- Used to check connectivity before attempting sync -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Restricts app to devices with ARCore support.
+         Users without a compatible device will not see the app on the Play Store. -->
     <uses-feature android:name="android.hardware.camera.ar" android:required="true"/>
 
     <application
@@ -13,7 +27,14 @@
         android:icon="@mipmap/app_icon"
         android:usesCleartextTraffic="true"
         tools:replace="android:usesCleartextTraffic">
+        <!--
+            usesCleartextTraffic allows HTTP connections for local testing.
+            Production traffic uses HTTPS via Railway so this only applies
+            when pointing the app at a local development server.
+        -->
 
+        <!-- Unity's main activity. configChanges prevents restarts on
+             orientation/keyboard changes which would disrupt the AR session. -->
         <activity
             android:name="com.unity3d.player.UnityPlayerActivity"
             android:theme="@style/UnityThemeSelector"
@@ -29,6 +50,9 @@
             <meta-data android:name="unityplayer.UnityActivity" android:value="true"/>
         </activity>
 
+        <!-- Marks ARCore as required. Combined with uses-feature above,
+             this ensures the app only runs on ARCore-supported devices. -->
         <meta-data android:name="com.google.ar.core" android:value="required"/>
+
     </application>
 </manifest>

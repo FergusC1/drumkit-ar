@@ -1,3 +1,23 @@
+// SchematicUI.cs
+// NOTE: This script is no longer used.
+//
+// Originally designed to handle touch input and UI for a separate SchematicScene.
+// Replaced when the schematic was reimplemented as an overlay on MainScene to
+// prevent ARCore session loss that occurred on scene reload (SceneManager.LoadScene
+// kills the ARCore session and the camera feed does not recover on return).
+//
+// Touch handling and OnGUI are now handled directly in SchematicRenderer.cs.
+// This file can be safely deleted.// SchematicUI.cs
+// NOTE: This script is no longer used.
+//
+// Originally designed to handle touch input and UI for a separate SchematicScene.
+// Replaced when the schematic was reimplemented as an overlay on MainScene to
+// prevent ARCore session loss that occurred on scene reload (SceneManager.LoadScene
+// kills the ARCore session and the camera feed does not recover on return).
+//
+// Touch handling and OnGUI are now handled directly in SchematicRenderer.cs.
+// This file can be safely deleted.
+
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
