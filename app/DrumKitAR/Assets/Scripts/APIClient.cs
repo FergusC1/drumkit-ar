@@ -10,7 +10,7 @@ public class APIClient : MonoBehaviour
     [SerializeField] private string baseUrl = "https://drumkit-ar-production.up.railway.app";
 
     public static APIClient Instance { get; private set; }
-    
+
     public string GetBaseUrl() => baseUrl;
     private void Awake()
     {
@@ -32,6 +32,65 @@ public class APIClient : MonoBehaviour
         public float pos_z_cm;
         public float angle_deg;
         public float height_cm;
+    }
+
+    [System.Serializable]
+    public class ShareLinkRequest
+    {
+        public string profile_id;
+        public string view_level;
+        public int expires_hours;
+    }
+
+    [System.Serializable]
+    public class ShareLinkResponse
+    {
+        public string token;
+        public string view_level;
+        public string share_url;
+    }
+
+    public void GenerateShareLink(string profileId, string viewLevel,
+        System.Action<bool, string> callback)
+    {
+        StartCoroutine(GenerateShareLinkCoroutine(profileId, viewLevel, callback));
+    }
+
+    private IEnumerator GenerateShareLinkCoroutine(string profileId, string viewLevel,
+        System.Action<bool, string> callback)
+    {
+        ShareLinkRequest request = new ShareLinkRequest
+        {
+            profile_id = profileId,
+            view_level = viewLevel,
+            expires_hours = 24
+        };
+
+        string json = JsonUtility.ToJson(request);
+        Debug.Log($"Generating share link: {json}");
+
+        UnityWebRequest www = new UnityWebRequest(baseUrl + "/shares/generate", "POST");
+        byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+        www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+        www.downloadHandler = new DownloadHandlerBuffer();
+        www.SetRequestHeader("Content-Type", "application/json");
+
+        yield return www.SendWebRequest();
+
+        if (www.result == UnityWebRequest.Result.Success)
+        {
+            ShareLinkResponse response = JsonUtility.FromJson<ShareLinkResponse>(
+                www.downloadHandler.text);
+            Debug.Log($"Share link generated - token: {response.token}");
+            callback?.Invoke(true, response.token);
+        }
+        else
+        {
+            Debug.LogError($"Share link failed: {www.error}");
+            callback?.Invoke(false, www.error);
+        }
+
+        www.Dispose();
     }
 
     [System.Serializable]

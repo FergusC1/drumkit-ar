@@ -17,6 +17,10 @@ public class MeasurementUI : MonoBehaviour
     private GuidedSetupManager guidedSetupManager;
     private string guidedProfileId = "";
     private bool showProfileInput = false;
+    private bool showSharePanel = false;
+    private string lastSavedProfileId = "";
+    private string generatedShareToken = "";
+    private string selectedViewLevel = "footprint";
 
 private void Start()
 {
@@ -283,8 +287,7 @@ private void Update()
         var elements = elementTagger?.GetTaggedElements();
         if (elements != null && elements.Count > 0)
         {
-            // Using test user ID - will be replaced with auth later
-            string testUserId = "9b2288bb-0b27-45f2-9113-a9ea7f4ef100";
+            string testUserId = "16dd3dd7-0ea5-48eb-bc36-63a334bd6aa6";
             APIClient.Instance?.SaveKit(
                 "My Kit",
                 "Captured on " + System.DateTime.Now.ToString("dd/MM/yyyy"),
@@ -293,16 +296,17 @@ private void Update()
                 (success, profileId) =>
                 {
                     if (success)
+                    {
+                        lastSavedProfileId = profileId;
                         Debug.Log($"Kit saved successfully - ID: {profileId}");
+                    }
                     else
                         Debug.LogError($"Failed to save kit: {profileId}");
                 }
             );
         }
         else
-        {
             Debug.LogWarning("No elements tagged - nothing to save");
-        }
     }
     // View schematic button
     if (GUI.Button(new Rect(btnX, padding + 365, btnWidth, 50), "View Schematic"))
@@ -372,6 +376,72 @@ private void Update()
             ? Color.green : Color.cyan;
         GUI.Box(new Rect(padding, padding + 100, 400, 40), statusText);
         GUI.color = Color.white;
+    }
+    // Share button - only show if a kit has been saved
+    if (!string.IsNullOrEmpty(lastSavedProfileId))
+    {
+        if (GUI.Button(new Rect(btnX, padding + 485, btnWidth, 50), "Share Kit"))
+        {
+            showSharePanel = !showSharePanel;
+            generatedShareToken = "";
+        }
+    }
+
+    // Share panel
+    if (showSharePanel && !string.IsNullOrEmpty(lastSavedProfileId))
+    {
+        int panelX = padding;
+        int panelY = Screen.height / 2 - 150;
+        GUI.Box(new Rect(panelX, panelY, 360, 300), "Share Kit Profile");
+
+        GUI.Label(new Rect(panelX + 10, panelY + 35, 340, 25), "Select view level:");
+
+        string[] viewLevels = { "footprint", "technical", "inventory", "full" };
+        string[] viewLabels = {
+            "Footprint (promoters)",
+            "Technical (sound engineers)",
+            "Inventory (backline)",
+            "Full (drummers)"
+        };
+
+        for (int i = 0; i < viewLevels.Length; i++)
+        {
+            bool selected = selectedViewLevel == viewLevels[i];
+            GUI.color = selected ? Color.cyan : Color.white;
+            if (GUI.Button(new Rect(panelX + 10, panelY + 60 + (i * 42), 340, 35),
+                viewLabels[i]))
+            {
+                selectedViewLevel = viewLevels[i];
+            }
+            GUI.color = Color.white;
+        }
+
+        if (GUI.Button(new Rect(panelX + 10, panelY + 235, 160, 45), "Generate Link"))
+        {
+            APIClient.Instance?.GenerateShareLink(
+                lastSavedProfileId,
+                selectedViewLevel,
+                (success, token) =>
+                {
+                    if (success)
+                    {
+                        generatedShareToken = token;
+                        Debug.Log($"Share link generated: {token}");
+                    }
+                }
+            );
+        }
+
+        if (GUI.Button(new Rect(panelX + 190, panelY + 235, 160, 45), "Close"))
+            showSharePanel = false;
+
+        if (!string.IsNullOrEmpty(generatedShareToken))
+        {
+            GUI.color = Color.green;
+            GUI.Box(new Rect(panelX + 10, panelY + 255, 340, 35),
+                $"Token: {generatedShareToken}");
+            GUI.color = Color.white;
+        }
     }
 }
 }
