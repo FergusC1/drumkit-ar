@@ -60,67 +60,78 @@ public class APIClient : MonoBehaviour
             ownerId, taggedElements, callback));
     }
 
-    private IEnumerator SaveKitCoroutine(string profileName, string description,
-        string ownerId, List<ElementTagger.TaggedElement> taggedElements,
-        System.Action<bool, string> callback)
+private IEnumerator SaveKitCoroutine(string profileName, string description,
+    string ownerId, List<ElementTagger.TaggedElement> taggedElements,
+    System.Action<bool, string> callback)
+{
+    KitSaveRequest request = new KitSaveRequest
     {
-        KitSaveRequest request = new KitSaveRequest
+        profile_name = profileName,
+        description = description,
+        stage_width_cm = 0f,
+        stage_depth_cm = 0f,
+        owner_id = ownerId,
+        elements = new List<ElementData>()
+    };
+
+    foreach (var elem in taggedElements)
+    {
+        request.elements.Add(new ElementData
         {
-            profile_name = profileName,
-            description = description,
-            stage_width_cm = 0f,
-            stage_depth_cm = 0f,
-            owner_id = ownerId,
-            elements = new List<ElementData>()
-        };
-
-        foreach (var elem in taggedElements)
-        {
-            request.elements.Add(new ElementData
-            {
-                element_type = ElementTypeToString(elem.elementType),
-                label = elem.label,
-                pos_x_cm = elem.position.x * 100f,
-                pos_y_cm = elem.position.y * 100f,
-                pos_z_cm = elem.position.z * 100f,
-                angle_deg = elem.angleDeg,
-                height_cm = elem.heightCm
-            });
-        }
-
-        string json = JsonUtility.ToJson(request);
-        Debug.Log($"Sending kit save request: {json}");
-
-        Debug.Log($"Starting save to URL: {baseUrl}/elements/save");
-        yield return null;
-
-        using (UnityWebRequest www = new UnityWebRequest(baseUrl + "/elements/save", "POST"))
-        {
-            byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
-            www.uploadHandler = new UploadHandlerRaw(bodyRaw);
-            www.downloadHandler = new DownloadHandlerBuffer();
-            www.SetRequestHeader("Content-Type", "application/json");
-
-            yield return www.SendWebRequest();
-
-          if (www.result == UnityWebRequest.Result.Success)
-            {
-                Debug.Log($"Server response: {www.downloadHandler.text}");
-                KitSaveResponse response = JsonUtility.FromJson<KitSaveResponse>(
-                    www.downloadHandler.text);
-                Debug.Log($"Kit saved successfully - profile ID: {response.profile_id}");
-                callback?.Invoke(true, response.profile_id);
-            }
-            else
-            {
-                Debug.LogError($"Save failed - result: {www.result}");
-                Debug.LogError($"Error: {www.error}");
-                Debug.LogError($"Response code: {www.responseCode}");
-                Debug.LogError($"Response body: {www.downloadHandler.text}");
-                callback?.Invoke(false, www.error);
-            }
-        }
+            element_type = ElementTypeToString(elem.elementType),
+            label = elem.label,
+            pos_x_cm = elem.position.x * 100f,
+            pos_y_cm = elem.position.y * 100f,
+            pos_z_cm = elem.position.z * 100f,
+            angle_deg = elem.angleDeg,
+            height_cm = elem.heightCm
+        });
     }
+
+    string json = JsonUtility.ToJson(request);
+    Debug.Log($"Sending kit save request: {json}");
+    Debug.Log($"Starting save to URL: {baseUrl}/elements/save");
+
+    UnityWebRequest www = new UnityWebRequest(baseUrl + "/elements/save", "POST");
+    byte[] bodyRaw = Encoding.UTF8.GetBytes(json);
+    www.uploadHandler = new UploadHandlerRaw(bodyRaw);
+    www.downloadHandler = new DownloadHandlerBuffer();
+    www.SetRequestHeader("Content-Type", "application/json");
+    Debug.Log("About to send web request");
+    UnityWebRequestAsyncOperation operation = null;
+    try
+    {
+        operation = www.SendWebRequest();
+    }
+    catch (System.Exception e)
+    {
+        Debug.LogError($"SendWebRequest exception: {e.Message}");
+        callback?.Invoke(false, e.Message);
+        yield break;
+    }
+
+    yield return operation;
+    Debug.Log($"Request complete - result: {www.result} code: {www.responseCode}");
+
+    if (www.result == UnityWebRequest.Result.Success)
+    {
+        Debug.Log($"Server response: {www.downloadHandler.text}");
+        KitSaveResponse response = JsonUtility.FromJson<KitSaveResponse>(
+            www.downloadHandler.text);
+        Debug.Log($"Kit saved successfully - profile ID: {response.profile_id}");
+        callback?.Invoke(true, response.profile_id);
+    }
+    else
+    {
+        Debug.LogError($"Save failed - result: {www.result}");
+        Debug.LogError($"Error: {www.error}");
+        Debug.LogError($"Response code: {www.responseCode}");
+        Debug.LogError($"Response body: {www.downloadHandler.text}");
+        callback?.Invoke(false, www.error);
+    }
+
+    www.Dispose();
+}
 
     private string ElementTypeToString(ElementTagger.DrumElement element)
     {

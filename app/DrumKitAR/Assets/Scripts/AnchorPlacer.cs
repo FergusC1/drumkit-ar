@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR.ARFoundation;
 using UnityEngine.XR.ARSubsystems;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.EnhancedTouch;
+using Touch = UnityEngine.InputSystem.EnhancedTouch.Touch;
 
 public class AnchorPlacer : MonoBehaviour
 {
@@ -28,67 +31,77 @@ public class AnchorPlacer : MonoBehaviour
         Instance = this;
     }
 
-   private void Update()
-{
-    if (Input.touchCount > 0)
+    private void OnEnable()
     {
-        Touch touch = Input.GetTouch(0);
-        Debug.Log($"Touch detected - phase: {touch.phase} position: {touch.position}");
-        
-        if (touch.phase != TouchPhase.Began) return;
-        PlaceAnchorAtTouch(touch.position);
-    }
-}
-
-private void PlaceAnchorAtTouch(Vector2 touchPosition)
-{
-    Debug.Log($"Attempting placement at {touchPosition}");
-
-    if (ARSessionManager.Instance != null &&
-        ARSessionManager.Instance.CurrentLighting == ARSessionManager.LightingCondition.Poor)
-    {
-        Debug.LogWarning("Lighting too poor for accurate placement");
-        return;
+        EnhancedTouchSupport.Enable();
     }
 
-    bool hitDetected = raycastManager.Raycast(touchPosition, hits, 
-        TrackableType.PlaneWithinBounds | TrackableType.PlaneWithinPolygon | TrackableType.PlaneEstimated);
-    Debug.Log($"Raycast hit detected: {hitDetected}, hits count: {hits.Count}");
-
-    if (!hitDetected)
+    private void OnDisable()
     {
-        Debug.Log("No surface detected at touch point");
-        return;
+        EnhancedTouchSupport.Disable();
     }
 
-    // Sort hits by distance and use closest
-    hits.Sort((a, b) => a.distance.CompareTo(b.distance));
-    Pose hitPose = hits[0].pose;
-
-    GameObject anchorObj = new GameObject("Anchor");
-    anchorObj.transform.position = hitPose.position;
-    anchorObj.transform.rotation = hitPose.rotation;
-
-    ARAnchor anchor = anchorObj.AddComponent<ARAnchor>();
-    placedAnchors.Add(anchor);
-
-    if (anchorMarkerPrefab != null)
+    private void Update()
     {
-        GameObject marker = Instantiate(anchorMarkerPrefab, hitPose.position, hitPose.rotation);
-        placedMarkers.Add(marker);
+        if (Touch.activeTouches.Count == 0) return;
+
+        var touch = Touch.activeTouches[0];
+        Debug.Log($"Touch detected - phase: {touch.phase} position: {touch.screenPosition}");
+
+        if (touch.phase != UnityEngine.InputSystem.TouchPhase.Began) return;
+        PlaceAnchorAtTouch(touch.screenPosition);
     }
 
-    Debug.Log($"Anchor placed at {hitPose.position}. Total anchors: {placedAnchors.Count}");
-    // Feed anchor to calibration manager if calibration is active
-if (CalibrationManager.Instance != null &&
-    CalibrationManager.Instance.State != CalibrationManager.CalibrationState.Idle &&
-    CalibrationManager.Instance.State != CalibrationManager.CalibrationState.Complete)
+    private void PlaceAnchorAtTouch(Vector2 touchPosition)
     {
-        CalibrationManager.Instance.RegisterAnchorForCalibration(hitPose.position);
+        Debug.Log($"Attempting placement at {touchPosition}");
+
+        if (ARSessionManager.Instance != null &&
+            ARSessionManager.Instance.CurrentLighting == ARSessionManager.LightingCondition.Poor)
+        {
+            Debug.LogWarning("Lighting too poor for accurate placement");
+            return;
+        }
+
+        bool hitDetected = raycastManager.Raycast(touchPosition, hits,
+            TrackableType.PlaneWithinBounds | TrackableType.PlaneWithinPolygon | TrackableType.PlaneEstimated);
+        Debug.Log($"Raycast hit detected: {hitDetected}, hits count: {hits.Count}");
+
+        if (!hitDetected)
+        {
+            Debug.Log("No surface detected at touch point");
+            return;
+        }
+
+        hits.Sort((a, b) => a.distance.CompareTo(b.distance));
+        Pose hitPose = hits[0].pose;
+
+        GameObject anchorObj = new GameObject("Anchor");
+        anchorObj.transform.position = hitPose.position;
+        anchorObj.transform.rotation = hitPose.rotation;
+
+        ARAnchor anchor = anchorObj.AddComponent<ARAnchor>();
+        placedAnchors.Add(anchor);
+
+        if (anchorMarkerPrefab != null)
+        {
+            GameObject marker = Instantiate(anchorMarkerPrefab, hitPose.position, hitPose.rotation);
+            placedMarkers.Add(marker);
+        }
+
+        Debug.Log($"Anchor placed at {hitPose.position}. Total anchors: {placedAnchors.Count}");
+
+        if (CalibrationManager.Instance != null &&
+            CalibrationManager.Instance.State != CalibrationManager.CalibrationState.Idle &&
+            CalibrationManager.Instance.State != CalibrationManager.CalibrationState.Complete)
+        {
+            CalibrationManager.Instance.RegisterAnchorForCalibration(hitPose.position);
+        }
+
+        if (placedAnchors.Count >= 2)
+            CalculateDistances();
     }
-    if (placedAnchors.Count >= 2)
-        CalculateDistances();
-}
+
     private void CalculateDistances()
     {
         for (int i = 0; i < placedAnchors.Count - 1; i++)
@@ -101,7 +114,8 @@ if (CalibrationManager.Instance != null &&
                 );
                 float distanceCm = distanceMetres * 100f;
 
-                Vector3 direction = placedAnchors[j].transform.position - placedAnchors[i].transform.position;
+                Vector3 direction = placedAnchors[j].transform.position -
+                    placedAnchors[i].transform.position;
                 float angle = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
 
                 Debug.Log($"Anchor {i} to Anchor {j}: {distanceCm:F1}cm, angle: {angle:F1} degrees");
