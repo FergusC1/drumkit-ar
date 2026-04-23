@@ -15,14 +15,25 @@ public class MeasurementUI : MonoBehaviour
     private Vector2 elementScrollPos;
     private bool showElementPanel = false;
 
-   private void Start()
+private void Start()
 {
-    anchorPlacer = AnchorPlacer.Instance;
     sessionManager = ARSessionManager.Instance;
+    anchorPlacer = AnchorPlacer.Instance;
     elementTagger = ElementTagger.Instance ?? FindObjectOfType<ElementTagger>();
-    
-    if (sessionManager == null)
-        Debug.LogError("ARSessionManager instance not found");
+
+    StartCoroutine(DelayedARRestart());
+}
+
+private System.Collections.IEnumerator DelayedARRestart()
+{
+    yield return new WaitForSeconds(1f);
+    var arSession = FindObjectOfType<UnityEngine.XR.ARFoundation.ARSession>();
+    if (arSession != null)
+    {
+        arSession.Reset();
+        Debug.Log("AR Session reset on scene load");
+    }
+
     if (anchorPlacer == null)
         Debug.LogError("AnchorPlacer instance not found");
 }
@@ -287,6 +298,19 @@ private void Update()
         else
         {
             Debug.LogWarning("No elements tagged - nothing to save");
+        }
+    }
+    // View schematic button
+    if (GUI.Button(new Rect(btnX, padding + 365, btnWidth, 50), "View Schematic"))
+    {
+        var elements = elementTagger?.GetTaggedElements();
+        if (elements != null && elements.Count > 0)
+        {
+            SchematicRenderer.Instance?.ShowSchematic(elements);
+        }
+        else
+        {
+            Debug.LogWarning("No elements to show schematic for");
         }
     }
 }

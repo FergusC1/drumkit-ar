@@ -46,10 +46,33 @@ public class AnchorPlacer : MonoBehaviour
         if (Touch.activeTouches.Count == 0) return;
 
         var touch = Touch.activeTouches[0];
-        Debug.Log($"Touch detected - phase: {touch.phase} position: {touch.screenPosition}");
-
         if (touch.phase != UnityEngine.InputSystem.TouchPhase.Began) return;
-        PlaceAnchorAtTouch(touch.screenPosition);
+
+        // Ignore touches on UI areas
+        Vector2 pos = touch.screenPosition;
+        bool onUI = IsOnUI(pos);
+        Debug.Log($"Touch detected - phase: {touch.phase} position: {pos} onUI: {onUI}");
+
+        if (onUI) return;
+        PlaceAnchorAtTouch(pos);
+    }
+
+    private bool IsOnUI(Vector2 screenPos)
+    {
+        int btnX = Screen.width - 140 - 20;
+        int padding = 20;
+
+        // Right side buttons column
+        if (screenPos.x > btnX) return true;
+
+        // Top left boxes (lighting + calibration)
+        if (screenPos.y > Screen.height - 100 && screenPos.x < 370) return true;
+
+        // Element panel when open
+        if (screenPos.x < 320 && screenPos.y < Screen.height - 140 &&
+            screenPos.y > Screen.height / 2 - 200) return true;
+
+        return false;
     }
 
     private void PlaceAnchorAtTouch(Vector2 touchPosition)

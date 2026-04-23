@@ -56,6 +56,20 @@ private void RequestCameraPermission()
     }
 }
 
+        private void OnEnable()
+    {
+        StartCoroutine(RestartARSession());
+    }
+
+    private IEnumerator RestartARSession()
+    {
+        yield return new WaitForSeconds(0.5f);
+        if (arSession != null)
+        {
+            arSession.Reset();
+        }
+    }
+
     private void OnDestroy()
     {
         if (cameraManager != null)
